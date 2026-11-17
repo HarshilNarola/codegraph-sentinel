@@ -37,6 +37,10 @@ streamlit run app.py
 
 Add a free `GROQ_API_KEY` from [console.groq.com](https://console.groq.com) to `.env`. The BGE embedding model downloads locally and runs on CPU. No OpenAI API is used.
 
+For Streamlit Community Cloud, add `GROQ_API_KEY` and optional LangSmith values
+under the app's Secrets settings. The app reads these server-side and never
+renders the API key in the browser.
+
 ## Engineering highlights
 
 - AST-aware source chunks preserve functions and classes instead of splitting blindly.

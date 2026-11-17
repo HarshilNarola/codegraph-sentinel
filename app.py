@@ -8,7 +8,27 @@ from langgraph.types import Command
 from src.graph import create_review_graph
 from src.ingestion import HybridCodeRetriever, clone_repository, parse_codebase_ast
 
+
+def _load_server_secrets() -> None:
+    """Load Streamlit Cloud secrets without rendering them in the browser."""
+    for name in (
+        "GROQ_API_KEY",
+        "LANGCHAIN_TRACING_V2",
+        "LANGCHAIN_PROJECT",
+        "LANGCHAIN_API_KEY",
+    ):
+        if os.getenv(name):
+            continue
+        try:
+            value = st.secrets.get(name)
+        except FileNotFoundError:
+            value = None
+        if value:
+            os.environ[name] = str(value)
+
+
 load_dotenv()
+_load_server_secrets()
 st.set_page_config(page_title="CodeGraph-Sentinel", layout="wide")
 st.title("CodeGraph-Sentinel: Multi-Agent Codebase Reviewer")
 st.caption("AST parsing | RRF hybrid search | Groq inference | LangGraph HITL")
@@ -20,9 +40,10 @@ st.session_state.setdefault("thread_id", str(uuid.uuid4()))
 
 with st.sidebar:
     st.header("1. API & Repository Setup")
-    key = st.text_input("Groq API Key", value=os.getenv("GROQ_API_KEY", ""), type="password")
-    if key:
-        os.environ["GROQ_API_KEY"] = key
+    if os.getenv("GROQ_API_KEY"):
+        st.success("Groq API configured securely.")
+    else:
+        st.error("Configure GROQ_API_KEY in Streamlit Secrets.")
     repo_url = st.text_input("Public GitHub Repository URL", value="https://github.com/pallets/click")
     if st.button("Clone & Index Codebase", type="primary", use_container_width=True):
         if not os.getenv("GROQ_API_KEY"):
@@ -54,7 +75,7 @@ with st.sidebar:
             st.code(st.session_state.graph.get_graph().draw_mermaid(), language="mermaid")
 
 if not st.session_state.graph:
-    st.info("Enter a Groq API key and repository URL, then click **Clone & Index Codebase**.")
+    st.info("Configure the Groq secret and repository URL, then click **Clone & Index Codebase**.")
     st.stop()
 
 for message in st.session_state.messages:
